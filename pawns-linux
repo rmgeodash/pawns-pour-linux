@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+
+set -e
+
+echo "🚀 Installation de Docker en cours... 😊"
+# Vérifier si docker est déjà installé
+if ! command -v docker &> /dev/null; then
+  # Mise à jour des paquets et installation
+  sudo apt-get update -y
+  sudo apt-get install -y \
+    ca-certificates \
+    curl \
+    gnupg \
+    lsb-release
+
+  # Ajout de la clé GPG officielle Docker
+  sudo mkdir -p /etc/apt/keyrings
+  curl -fsSL https://download.docker.com/linux/ubuntu/gpg | \
+    sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+
+  # Configuration du dépôt Docker
+  echo \
+    "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
+    https://download.docker.com/linux/ubuntu \
+    $(lsb_release -cs) stable" | \
+    sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+  # Installation de Docker Engine
+  sudo apt-get update -y
+  sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+
+  echo "✅ Docker a été installé avec succès !"
+else
+  echo "ℹ️ Docker est déjà présent sur la machine."
+fi
+
+# Demande des identifiants
+echo
+read -p "📧 Merci d’entrer votre e‑mail Pawns.app : " PAWNS_EMAIL
+read -s -p "🔒 Merci d’entrer votre mot de passe Pawns.app : " PAWNS_PASS
+echo
+echo "✔️   Merci ! On prépare le conteneur avec vos identifiants."
+
+# Récupération de l’image et lancement du conteneur
+echo
+echo "📥 Pull de l’image iproyal/pawns-cli:latest..."
+docker pull iproyal/pawns-cli:latest
+
+echo "🏃 Démarrage du conteneur Pawns en arrière‑plan (restart on-failure:5)..."
+docker run -d \
+  --name pawns-node \
+  --restart on-failure:5 \
+  iproyal/pawns-cli:latest \
+  -email="${PAWNS_EMAIL}" \
+  -password="${PAWNS_PASS}" \
+  -device-name="raspberrypi" \
+  -device-id="raspberrypi1" \
+  -accept-tos
+
+echo
+echo "🎉 Votre instance Pawns est maintenant en cours d’exécution !"
+echo "    Pour vérifier : docker ps | grep pawns-node"
